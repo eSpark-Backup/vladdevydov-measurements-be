@@ -4,7 +4,7 @@ const pool = new Pool({
     host: process.env.DB_HOST || 'localhost',
     port: process.env.DB_PORT || 5432,
     database: process.env.DB_NAME || 'projectdb',
-    user: process.env.DB_USER || 'postgres',
+    user: process.env.DB_USER || 'projectuser',
     password: process.env.DB_PASSWORD || 'password123',
     max: 20,
     idleTimeoutMillis: 30000,

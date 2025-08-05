@@ -5,6 +5,7 @@ const rateLimit = require('express-rate-limit');
 const morgan = require('morgan');
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
+const pool = require("./config/database");
 require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
@@ -123,7 +124,18 @@ app.use('*', (req, res) => {
     });
 });
 
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-    console.log(`API Documentation available at http://localhost:${PORT}/api-docs`);
-});
+pool
+  .connect()
+  .then(() => {
+    console.log("Database connected successfully");
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+      console.log(
+        `API Documentation available at http://localhost:${PORT}/api-docs`
+      );
+    });
+  })
+  .catch((err) => {
+    console.error("Database connection error:", err);
+    process.exit(1);
+  });
