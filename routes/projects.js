@@ -64,16 +64,40 @@ const router = express.Router();
  *         description: Authentication required
  */
 router.post('/', authenticateToken, validate(createProjectSchema), async (req, res) => {
+    const client = await pool.connect();
     try {
-        const { name, description } = req.body;
+        const { name, description, userIds = [] } = req.body;
         const userId = req.user.id;
+        const userRole = req.user.role;
 
-        const result = await pool.query(
+        await client.query('BEGIN');
+
+        // 1. Insert into projects
+        const projectResult = await client.query(
             'INSERT INTO projects (name, description, created_by) VALUES ($1, $2, $3) RETURNING *',
             [name, description || '', userId]
         );
+        const project = projectResult.rows[0];
 
-        const project = result.rows[0];
+        // 2. Always add creator to project_users
+        await client.query(
+            'INSERT INTO project_users (project_id, user_id, added_by) VALUES ($1, $2, $3)',
+            [project.id, userId, userId]
+        );
+
+        // 3. If admin, allow adding more users
+        if (userRole === 'admin1' && Array.isArray(userIds)) {
+            for (const uid of userIds) {
+                if (uid !== userId) {
+                    await client.query(
+                        'INSERT INTO project_users (project_id, user_id, added_by) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
+                        [project.id, uid, userId]
+                    );
+                }
+            }
+        }
+
+        await client.query('COMMIT');
 
         res.status(201).json({
             success: true,
@@ -81,11 +105,14 @@ router.post('/', authenticateToken, validate(createProjectSchema), async (req, r
             project,
         });
     } catch (error) {
+        await client.query('ROLLBACK');
         console.error('Create project error:', error);
         res.status(500).json({
             success: false,
             message: 'Server error while creating project',
         });
+    } finally {
+        client.release();
     }
 });
 
