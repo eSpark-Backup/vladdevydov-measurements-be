@@ -58,42 +58,48 @@ const requireAdmin = (req, res, next) => {
 };
 
 const requireAdminOrOwner = async (req, res, next) => {
-    if (req.user.role === 'admin') {
-        return next();
-    }
+  if (req.user.role === "admin") {
+    return next();
+  }
 
-    // For project-related routes, check if user owns the project
-    const projectId = req.params.id || req.params.projectId;
-    if (projectId) {
-        try {
-            const result = await pool.query(
-                'SELECT created_by FROM projects WHERE id = $1',
-                [projectId]
-            );
+  const projectId = req.params.id || req.params.projectId;
+  if (!projectId) {
+    return res.status(400).json({
+      success: false,
+      message: "Project ID is required",
+    });
+  }
 
-            if (result.rows.length === 0) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Project not found',
-                });
-            }
+  try {
+    const result = await pool.query(
+      `
+            SELECT 1
+            FROM projects p
+            LEFT JOIN project_users pu ON p.id = pu.project_id
+            WHERE p.id = $1
+            AND (p.created_by = $2 OR pu.user_id = $2)
+            LIMIT 1
+        `,
+      [projectId, req.user.id]
+    );
 
-            if (result.rows[0].created_by !== req.user.id) {
-                return res.status(403).json({
-                    success: false,
-                    message: 'Access denied. You can only access your own projects.',
-                });
-            }
-        } catch (error) {
-            return res.status(500).json({
-                success: false,
-                message: 'Error checking project ownership',
-            });
-        }
+    if (result.rows.length === 0) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "Access denied. You can only access your own or assigned projects.",
+      });
     }
 
     next();
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Error checking project access",
+    });
+  }
 };
+
 
 module.exports = {
     authenticateToken,
