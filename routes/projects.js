@@ -223,8 +223,14 @@ router.get("/", authenticateToken, async (req, res) => {
     const params = [];
 
     if (req.user.role !== "admin") {
-      query += " WHERE p.created_by = $1";
-      countQuery += " WHERE p.created_by = $1";
+      query += `
+    WHERE p.created_by = $1
+    OR p.id IN (SELECT project_id FROM project_users WHERE user_id = $1)
+  `;
+      countQuery += `
+    WHERE p.created_by = $1
+    OR p.id IN (SELECT project_id FROM project_users WHERE user_id = $1)
+  `;
       params.push(req.user.id);
     }
 
@@ -248,11 +254,14 @@ router.get("/", authenticateToken, async (req, res) => {
         `SELECT u.id, u.email
      FROM project_users pu
      JOIN users u ON pu.user_id = u.id
-     WHERE pu.project_id = $1`,
+     JOIN projects p ON pu.project_id = p.id
+     WHERE pu.project_id = $1
+       AND u.id <> p.created_by`, // exclude creator (admin)
         [project.id]
       );
       project.assigned_users = assignedUsersResult.rows;
     }
+
 
     res.json({
       success: true,
@@ -314,7 +323,9 @@ router.get("/:id", authenticateToken, requireAdminOrOwner, async (req, res) => {
       `SELECT u.id, u.email 
        FROM project_users pu
        JOIN users u ON pu.user_id = u.id
-       WHERE pu.project_id = $1`,
+       JOIN projects p ON p.id = pu.project_id
+       WHERE pu.project_id = $1
+       AND u.id <> p.created_by`,
       [id]
     );
 
@@ -332,7 +343,7 @@ router.get("/:id", authenticateToken, requireAdminOrOwner, async (req, res) => {
       ...projectResult.rows[0],
       files: filesResult.rows,
       data: dataResult.rows,
-      assigned_users: assignedUsersResult.rows, // ✅ includes assigned users
+      assigned_users: assignedUsersResult.rows, // ✅ excludes admin
     };
 
     res.json({
@@ -347,6 +358,7 @@ router.get("/:id", authenticateToken, requireAdminOrOwner, async (req, res) => {
     });
   }
 });
+
 
 /**
  * @swagger
