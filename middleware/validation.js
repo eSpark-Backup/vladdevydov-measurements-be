@@ -20,7 +20,10 @@ const updateUserSchema = Joi.object({
 // Project validation schemas
 const createProjectSchema = Joi.object({
     name: Joi.string().min(1).max(255).required(),
-    description: Joi.string().max(1000).allow('')
+    description: Joi.string().max(1000).allow('').optional(),
+    userIds: Joi.array()
+        .items(Joi.number().integer().positive())
+        .optional()
 });
 
 const updateProjectSchema = Joi.object({

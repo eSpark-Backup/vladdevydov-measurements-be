@@ -21,6 +21,17 @@ CREATE TABLE IF NOT EXISTS projects
     updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 👇 New table to manage project-user relationships
+CREATE TABLE IF NOT EXISTS project_users
+(
+    id          SERIAL PRIMARY KEY,
+    project_id  INTEGER REFERENCES projects (id) ON DELETE CASCADE,
+    user_id     INTEGER REFERENCES users (id) ON DELETE CASCADE,
+    added_by    INTEGER REFERENCES users (id), -- who added this user
+    added_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(project_id, user_id) -- avoid duplicates
+);
+
 -- Create project_files table
 CREATE TABLE IF NOT EXISTS project_files
 (
@@ -49,9 +60,11 @@ INSERT INTO users (email, password, role)
 VALUES ('admin@example.com', '$2a$10$8K1p/a0dRczANrwGQ4Yq/OQJ9Z2LxQwL8ePk.Qh9VWzr5rJC1XMEO', 'admin')
 ON CONFLICT (email) DO NOTHING;
 
--- Create indexes for better performance
+-- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_projects_created_by ON projects (created_by);
 CREATE INDEX IF NOT EXISTS idx_project_files_project_id ON project_files (project_id);
 CREATE INDEX IF NOT EXISTS idx_project_data_project_id ON project_data (project_id);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);
 CREATE INDEX IF NOT EXISTS idx_users_active ON users (is_active);
+CREATE INDEX IF NOT EXISTS idx_project_users_project_id ON project_users (project_id);
+CREATE INDEX IF NOT EXISTS idx_project_users_user_id ON project_users (user_id);
