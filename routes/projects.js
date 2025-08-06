@@ -37,6 +37,47 @@ const router = express.Router();
  *           format: date-time
  *         creator_email:
  *           type: string
+ *         assigned_users:
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               id:
+ *                 type: integer
+ *               email:
+ *                 type: string
+ *         files:
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               id:
+ *                 type: integer
+ *               filename:
+ *                 type: string
+ *               original_name:
+ *                 type: string
+ *               file_type:
+ *                 type: string
+ *               file_size:
+ *                 type: integer
+ *               uploaded_at:
+ *                 type: string
+ *                 format: date-time
+ *         data:
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               id:
+ *                 type: integer
+ *               data_key:
+ *                 type: string
+ *               data_value:
+ *                 type: string
+ *               created_at:
+ *                 type: string
+ *                 format: date-time
  *     CreateProjectRequest:
  *       type: object
  *       required:
@@ -44,10 +85,50 @@ const router = express.Router();
  *       properties:
  *         name:
  *           type: string
- *           maxLength: 255
  *         description:
  *           type: string
- *           maxLength: 1000
+ *         userIds:
+ *           type: array
+ *           items:
+ *             type: integer
+ *     UpdateProjectRequest:
+ *       type: object
+ *       properties:
+ *         name:
+ *           type: string
+ *         description:
+ *           type: string
+ *     AddProjectDataRequest:
+ *       type: object
+ *       required:
+ *         - data_key
+ *         - data_value
+ *       properties:
+ *         data_key:
+ *           type: string
+ *         data_value:
+ *           type: string
+ */
+
+/**
+ * @swagger
+ * /api/projects:
+ *   post:
+ *     summary: Create a new project
+ *     tags: [Projects]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CreateProjectRequest'
+ *     responses:
+ *       201:
+ *         description: Project created successfully
+ *       500:
+ *         description: Server error
  */
 router.post(
   "/",
@@ -103,6 +184,30 @@ router.post(
     }
   }
 );
+
+/**
+ * @swagger
+ * /api/projects:
+ *   get:
+ *     summary: Get all projects
+ *     tags: [Projects]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: page
+ *         in: query
+ *         schema:
+ *           type: integer
+ *         description: Page number
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *           type: integer
+ *         description: Items per page
+ *     responses:
+ *       200:
+ *         description: List of projects
+ */
 
 router.get("/", authenticateToken, async (req, res) => {
   try {
@@ -168,6 +273,27 @@ router.get("/", authenticateToken, async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/projects/{id}:
+ *   get:
+ *     summary: Get project by ID
+ *     tags: [Projects]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Project details
+ *       404:
+ *         description: Project not found
+ */
+
 router.get("/:id", authenticateToken, requireAdminOrOwner, async (req, res) => {
   try {
     const { id } = req.params;
@@ -222,6 +348,32 @@ router.get("/:id", authenticateToken, requireAdminOrOwner, async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/projects/{id}:
+ *   put:
+ *     summary: Update a project
+ *     tags: [Projects]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UpdateProjectRequest'
+ *     responses:
+ *       200:
+ *         description: Project updated successfully
+ *       404:
+ *         description: Project not found
+ */
 
 router.put(
   "/:id",
@@ -284,6 +436,37 @@ router.put(
   }
 );
 
+/**
+ * @swagger
+ * /api/projects/{id}/files:
+ *   post:
+ *     summary: Upload files to a project
+ *     tags: [Projects]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               files:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *     responses:
+ *       201:
+ *         description: Files uploaded successfully
+ */
+
 router.post(
   "/:id/files",
   authenticateToken,
@@ -333,6 +516,31 @@ router.post(
   }
 );
 
+/**
+ * @swagger
+ * /api/projects/{id}/data:
+ *   post:
+ *     summary: Add project data
+ *     tags: [Projects]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/AddProjectDataRequest'
+ *     responses:
+ *       201:
+ *         description: Data added successfully
+ */
+
 router.post(
   "/:id/data",
   authenticateToken,
@@ -362,6 +570,32 @@ router.post(
     }
   }
 );
+
+/**
+ * @swagger
+ * /api/projects/{projectId}/files/{fileId}/download:
+ *   get:
+ *     summary: Download a project file
+ *     tags: [Projects]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: projectId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - name: fileId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: File downloaded
+ *       404:
+ *         description: File not found
+ */
 
 router.get(
   "/:projectId/files/:fileId/download",
@@ -409,6 +643,32 @@ router.get(
   }
 );
 
+/**
+ * @swagger
+ * /api/projects/{id}/files/{fileId}:
+ *   delete:
+ *     summary: Delete a file from a project
+ *     tags: [Projects]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - name: fileId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: File deleted successfully
+ *       404:
+ *         description: File not found
+ */
+
 router.delete(
   "/:id/files/:fileId",
   authenticateToken,
@@ -450,6 +710,27 @@ router.delete(
     }
   }
 );
+
+/**
+ * @swagger
+ * /api/projects/{id}:
+ *   delete:
+ *     summary: Delete a project
+ *     tags: [Projects]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Project deleted successfully
+ *       404:
+ *         description: Project not found
+ */
 
 router.delete(
   "/:id",

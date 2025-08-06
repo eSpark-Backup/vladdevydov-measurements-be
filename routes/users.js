@@ -270,63 +270,82 @@ router.get('/:id', authenticateToken, requireAdmin, async (req, res) => {
  *       403:
  *         description: Admin access required
  */
-router.put('/:id', authenticateToken, requireAdmin, validate(updateUserSchema), async (req, res) => {
+router.put(
+  "/:id",
+  authenticateToken,
+  requireAdmin,
+  validate(updateUserSchema),
+  
+    async (req, res) => {
     try {
-        const { id } = req.params;
-        const updates = req.body;
+      const { id } = req.params;
+      const updates = req.body;
 
-        // Check if user exists
-        const userExists = await pool.query('SELECT id FROM users WHERE id = $1', [id]);
-        if (userExists.rows.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: 'User not found',
-            });
-        }
-
-        // Build dynamic update query
-        const updateFields = [];
-        const values = [];
-        let paramCount = 0;
-
-        Object.keys(updates).forEach(key => {
-            paramCount++;
-            updateFields.push(`${key} = ${paramCount}`);
-            values.push(updates[key]);
+      // Check if user exists
+      const userExists = await pool.query(
+        "SELECT id FROM users WHERE id = $1",
+        [id]
+      );
+      if (userExists.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "User not found",
         });
+      }
 
-        if (updateFields.length === 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'No fields to update',
-            });
+      // Build dynamic update query
+      const updateFields = [];
+      const values = [];
+      let paramCount = 0;
+
+      Object.keys(updates).forEach((key) => {
+        let value = updates[key];
+
+        // Convert is_active to boolean
+        if (key === "is_active") {
+          value = value === true || value === "true";
         }
 
         paramCount++;
-        values.push(id);
+        updateFields.push(`${key} = $${paramCount}`);
+        values.push(value);
+      });
 
-        const query = `
-      UPDATE users 
-      SET ${updateFields.join(', ')}, updated_at = CURRENT_TIMESTAMP 
-      WHERE id = ${paramCount} 
-      RETURNING id, email, role, is_active, updated_at
-    `;
-
-        const result = await pool.query(query, values);
-
-        res.json({
-            success: true,
-            message: 'User updated successfully',
-            user: result.rows[0],
+      if (updateFields.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "No fields to update",
         });
+      }
+
+      // Add ID as last parameter
+      paramCount++;
+      values.push(id);
+
+      const query = `
+            UPDATE users
+            SET ${updateFields.join(", ")}, updated_at = CURRENT_TIMESTAMP
+            WHERE id = $${paramCount}
+            RETURNING id, email, role, is_active, updated_at
+        `;
+
+      const result = await pool.query(query, values);
+
+      res.json({
+        success: true,
+        message: "User updated successfully",
+        user: result.rows[0],
+      });
     } catch (error) {
-        console.error('Update user error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error while updating user',
-        });
+      console.error("Update user error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Server error while updating user",
+      });
     }
-});
+  }
+);
+
 
 /**
  * @swagger
