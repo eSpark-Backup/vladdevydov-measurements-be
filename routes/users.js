@@ -70,7 +70,6 @@ router.post('/', authenticateToken, requireAdmin, validate(registerSchema), asyn
     try {
         const { email, password, role } = req.body;
 
-        // Check if user already exists
         const existingUser = await pool.query(
             'SELECT id FROM users WHERE email = $1',
             [email]
@@ -83,11 +82,9 @@ router.post('/', authenticateToken, requireAdmin, validate(registerSchema), asyn
             });
         }
 
-        // Hash password
         const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-        // Create user
         const result = await pool.query(
             'INSERT INTO users (email, password, role) VALUES ($1, $2, $3) RETURNING id, email, role, is_active, created_at',
             [email, hashedPassword, role]
@@ -281,7 +278,6 @@ router.put(
       const { id } = req.params;
       const updates = req.body;
 
-      // Check if user exists
       const userExists = await pool.query(
         "SELECT id FROM users WHERE id = $1",
         [id]
@@ -293,7 +289,6 @@ router.put(
         });
       }
 
-      // Build dynamic update query
       const updateFields = [];
       const values = [];
       let paramCount = 0;
@@ -301,7 +296,6 @@ router.put(
       Object.keys(updates).forEach((key) => {
         let value = updates[key];
 
-        // Convert is_active to boolean
         if (key === "is_active") {
           value = value === true || value === "true";
         }
@@ -318,7 +312,6 @@ router.put(
         });
       }
 
-      // Add ID as last parameter
       paramCount++;
       values.push(id);
 

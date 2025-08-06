@@ -256,7 +256,7 @@ router.get("/", authenticateToken, async (req, res) => {
      JOIN users u ON pu.user_id = u.id
      JOIN projects p ON pu.project_id = p.id
      WHERE pu.project_id = $1
-       AND u.id <> p.created_by`, // exclude creator (admin)
+       AND u.id <> p.created_by`,
         [project.id]
       );
       project.assigned_users = assignedUsersResult.rows;
@@ -343,7 +343,7 @@ router.get("/:id", authenticateToken, requireAdminOrOwner, async (req, res) => {
       ...projectResult.rows[0],
       files: filesResult.rows,
       data: dataResult.rows,
-      assigned_users: assignedUsersResult.rows, // ✅ excludes admin
+      assigned_users: assignedUsersResult.rows,
     };
 
     res.json({
