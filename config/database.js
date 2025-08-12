@@ -9,6 +9,9 @@ const pool = new Pool({
     max: 20,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 2000,
+    ssl: {
+        rejectUnauthorized: false // Aiven uses self-signed certs, so disable strict validation
+    }
 });
 
 // Test the connection

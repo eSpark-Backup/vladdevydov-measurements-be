@@ -8,29 +8,12 @@ services:
     environment:
       - NODE_ENV=production
       - JWT_SECRET=your-super-secret-jwt-key-change-this
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_NAME=projectdb
-      - DB_USER=postgres
-      - DB_PASSWORD=password123
-    depends_on:
-      - postgres
+      - DB_HOST=pg-2ee0a71d-ahmedshafi7812-88d3.k.aivencloud.com
+      - DB_PORT=11619
+      - DB_NAME=vladdevydov-measurements-be
+      - DB_USER=avnadmin
+      - DB_PASSWORD=AVNS_VOmHk7N78V_u0eCW0nS
+      - DB_SSLMODE=require
     volumes:
       - ./uploads:/app/uploads
     restart: unless-stopped
-
-  postgres:
-    image: postgres:15-alpine
-    environment:
-      - POSTGRES_DB=projectdb
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password123
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-    ports:
-      - "5435:5432"
-    restart: unless-stopped
-
-volumes:
-  postgres_data:
