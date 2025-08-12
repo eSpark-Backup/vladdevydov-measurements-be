@@ -4,7 +4,7 @@ services:
   app:
     build: .
     ports:
-      - "3008:3000"
+      - "3016:3000"
     environment:
       - NODE_ENV=production
       - JWT_SECRET=your-super-secret-jwt-key-change-this
