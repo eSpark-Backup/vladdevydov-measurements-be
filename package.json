@@ -11,7 +11,7 @@
   "dependencies": {
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.2",
-    "bcryptjs": "^2.4.3",
+    "bcryptjs": "^3.0.3",
     "pg": "^8.11.3",
     "multer": "^2.2.0",
     "cors": "^2.8.5",
